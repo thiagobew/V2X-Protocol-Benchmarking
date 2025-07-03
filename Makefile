@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++17 -Wall -I./EPOS
+CXXFLAGS := -std=c++17 -Wall -O2 -I./EPOS
 LDFLAGS := -lcryptopp
 
 SRC := $(wildcard *.cpp) $(wildcard *.cc) $(wildcard EPOS/*.cpp) $(wildcard EPOS/*.cc)

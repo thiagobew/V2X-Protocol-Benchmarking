@@ -68,6 +68,16 @@ Diffie_Hellman::Shared_Key Diffie_Hellman::shared_key(Elliptic_Curve_Point publi
     return public_key.x;
 }
 
+Diffie_Hellman::Shared_Key Diffie_Hellman::shared_key(Elliptic_Curve_Point public_key, Diffie_Hellman::Bignum priv_key)
+{
+    db<Diffie_Hellman>(TRC) << "Diffie_Hellman::shared_key(pub=" << public_key << ",priv=" << priv_key << ")" << std::endl;
+
+    public_key *= priv_key;
+    public_key.x ^= public_key.y;
+    db<Diffie_Hellman>(INF) << "Diffie_Hellman: shared key = " << public_key.x << std::endl;
+    return public_key.x;
+}
+
 // Validate point: y^2 ≡ x^3 + ax + b (mod p)
 bool Diffie_Hellman::is_valid_point(const Elliptic_Curve_Point& point) {
     // Check if x, y are in [0, p-1]

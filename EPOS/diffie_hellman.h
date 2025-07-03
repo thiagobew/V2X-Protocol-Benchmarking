@@ -53,6 +53,7 @@ public:
 	Elliptic_Curve_Point public_key() { return _public; }
 
 	Shared_Key shared_key(Elliptic_Curve_Point public_key);
+	static Shared_Key shared_key(Elliptic_Curve_Point public_key, Bignum priv_key);
 	static bool is_valid_point(const Elliptic_Curve_Point& point);
 
 private:
