@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cryptopp/sha.h>
 #include "EPOS/diffie_hellman.h"
 #include "EPOS/poly1305.h"
 #include "EPOS/cipher.h"
@@ -23,9 +24,14 @@ struct AES_Data {
     char message[MAX_AES_MESSAGE_SIZE];
 } typedef AES_Data;
 
+struct SHA256_Data {
+    unsigned char data[EPOS::S::Diffie_Hellman::SECRET_SIZE];
+} typedef SHA256_Data;
+
 DH_Data dh_test_data[ITERATIONS];
 Poly1305_Data poly1305_test_data[ITERATIONS];
 AES_Data aes_test_data[ITERATIONS];
+SHA256_Data sha256_test_data[ITERATIONS];
 
 void fill_random(void* buffer, size_t size) {
     unsigned char* buf = static_cast<unsigned char*>(buffer);
@@ -33,6 +39,7 @@ void fill_random(void* buffer, size_t size) {
         buf[i] = static_cast<unsigned char>(rand() % 256);
     }
 }
+
 
 int main() {
     // Seed random number generator
@@ -57,6 +64,11 @@ int main() {
         fill_random(aes_test_data[i].message, sizeof(aes_test_data[i].message));
     }
 
+    // Populate SHA256_Data
+    for (int i = 0; i < ITERATIONS; ++i) {
+        fill_random(&sha256_test_data[i].data, sizeof(sha256_test_data[i].data));
+    }
+
     std::cout << "Structures populated with random data." << std::endl;
 
     // Examples of how to call each function
@@ -75,6 +87,12 @@ int main() {
     // AES decryption
     unsigned char decrypted_text[EPOS::S::Diffie_Hellman::SECRET_SIZE];
     cipher.decrypt(ciphertext, reinterpret_cast<const unsigned char*>(aes_test_data[0].key), decrypted_text);
+
+    // SHA256 hashing
+    unsigned char sha256_digest[CryptoPP::SHA256::DIGESTSIZE];
+    CryptoPP::SHA256 hash;
+    hash.CalculateDigest(sha256_digest, sha256_test_data[0].data, sizeof(sha256_test_data[0].data));
+
 
     return 0;
 }
