@@ -176,5 +176,22 @@ int main() {
         EPOS::S::print_stats(stats);
     }
 
+    // Calculate and print throughput statistics for primitives that process data
+    std::cout << "\nCalculating throughput statistics..." << std::endl;
+    
+    // SHA-256 throughput (processes SECRET_SIZE bytes per iteration)
+    if (primitive_latencies.find("sha256") != primitive_latencies.end()) {
+        EPOS::S::PrimitiveStats sha256_stats = EPOS::S::calculate_stats("sha256", primitive_latencies.at("sha256"));
+        EPOS::S::ThroughputStats sha256_throughput = EPOS::S::calculate_throughput(sha256_stats, EPOS::S::Diffie_Hellman::SECRET_SIZE);
+        EPOS::S::print_throughput(sha256_throughput);
+    }
+    
+    // Poly1305 throughput (processes MAX_POLY1305_MESSAGE_SIZE bytes per iteration)
+    if (primitive_latencies.find("poly1305") != primitive_latencies.end()) {
+        EPOS::S::PrimitiveStats poly1305_stats = EPOS::S::calculate_stats("poly1305", primitive_latencies.at("poly1305"));
+        EPOS::S::ThroughputStats poly1305_throughput = EPOS::S::calculate_throughput(poly1305_stats, MAX_POLY1305_MESSAGE_SIZE);
+        EPOS::S::print_throughput(poly1305_throughput);
+    }
+
     return 0;
 }

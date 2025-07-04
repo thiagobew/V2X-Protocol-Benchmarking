@@ -21,6 +21,20 @@ struct PrimitiveStats {
     size_t iterations;
 };
 
+// ===== Throughput support =====
+
+struct ThroughputStats {
+    std::string name;                 // Primitive name (same as latency stats)
+    size_t bytes_per_iteration;       // Bytes processed per iteration
+    size_t iterations;                // Number of iterations (copied from latency stats)
+    std::vector<double> bps;          // Throughput values for each iteration (bytes/second)
+    double avg_bps;                   // Average throughput
+    double min_bps;                   // Minimum throughput
+    double max_bps;                   // Maximum throughput
+    double median_bps;                // Median throughput
+    double stdev_bps;                 // Standard deviation of throughput
+};
+
 /**
  * @brief Read latencies from CSV file and group by primitive
  * 
@@ -44,6 +58,22 @@ PrimitiveStats calculate_stats(const std::string& primitive_name, const std::vec
  * @param stats Statistics to print
  */
 void print_stats(const PrimitiveStats& stats);
+
+/**
+ * @brief Convert latency statistics to throughput (bytes/second) statistics.
+ *
+ * @param latency_stats Previously calculated latency statistics for the primitive
+ * @param bytes_per_iter Number of bytes processed in each iteration
+ * @return ThroughputStats Calculated throughput statistics
+ */
+ThroughputStats calculate_throughput(const PrimitiveStats& latency_stats, size_t bytes_per_iter);
+
+/**
+ * @brief Print throughput statistics in a formatted way
+ *
+ * @param stats Throughput statistics to print
+ */
+void print_throughput(const ThroughputStats& stats);
 
 __END_SYS
 
