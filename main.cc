@@ -1,8 +1,11 @@
 #include <iostream>
+#include <chrono>
+#include <fstream>
 #include <cryptopp/sha.h>
 #include "EPOS/diffie_hellman.h"
 #include "EPOS/poly1305.h"
 #include "EPOS/cipher.h"
+#include "EPOS/benchmark_stats.h"
 
 #define ITERATIONS 10000
 #define MAX_POLY1305_MESSAGE_SIZE 264 // Size of OTP for Forwarding Grant
@@ -70,29 +73,108 @@ int main() {
     }
 
     std::cout << "Structures populated with random data." << std::endl;
+    std::cout << "Starting benchmarks..." << std::endl;
 
-    // Examples of how to call each function
-    // Diffie-Hellman shared key calculation
-    EPOS::S::Diffie_Hellman::shared_key(dh_test_data[0].public_key, dh_test_data[0].private_key);
+    // Open CSV file for results
+    std::ofstream csv_file("latencies.csv");
+    csv_file << "primitive,iteration,ns\n";
 
-    // Poly1305 message authentication
-    unsigned char mac[16];
-    EPOS::S::Poly1305 poly1305 = EPOS::S::Poly1305(poly1305_test_data[0].key, poly1305_test_data[0].nonce);
-    poly1305.stamp(mac, poly1305_test_data[0].nonce, reinterpret_cast<const unsigned char*>(poly1305_test_data[0].message), sizeof(poly1305_test_data[0].message));
-
-    // AES encryption
-    EPOS::S::Cipher cipher;
-    unsigned char ciphertext[EPOS::S::Diffie_Hellman::SECRET_SIZE];
-    cipher.encrypt(reinterpret_cast<const unsigned char*>(aes_test_data[0].message), reinterpret_cast<const unsigned char*>(aes_test_data[0].key), ciphertext);
-    // AES decryption
-    unsigned char decrypted_text[EPOS::S::Diffie_Hellman::SECRET_SIZE];
-    cipher.decrypt(ciphertext, reinterpret_cast<const unsigned char*>(aes_test_data[0].key), decrypted_text);
-
-    // SHA256 hashing
+    // Declare timing variables once
     unsigned char sha256_digest[CryptoPP::SHA256::DIGESTSIZE];
     CryptoPP::SHA256 hash;
-    hash.CalculateDigest(sha256_digest, sha256_test_data[0].data, sizeof(sha256_test_data[0].data));
+    unsigned char mac[16];
+    EPOS::S::Cipher cipher;
+    unsigned char ciphertext[EPOS::S::Diffie_Hellman::SECRET_SIZE];
 
+    // SHA-256 benchmark
+    std::cout << "Running SHA-256 benchmark..." << std::endl;
+    // Warmup
+    for (int i = 0; i < 100; ++i) {
+        hash.CalculateDigest(sha256_digest, sha256_test_data[i % ITERATIONS].data, sizeof(sha256_test_data[i % ITERATIONS].data));
+    }
+    // Measured iterations
+    for (int i = 0; i < ITERATIONS; ++i) {
+        auto start = std::chrono::steady_clock::now();
+        hash.CalculateDigest(sha256_digest, sha256_test_data[i].data, sizeof(sha256_test_data[i].data));
+        auto end = std::chrono::steady_clock::now();
+        
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        csv_file << "sha256," << i << "," << duration.count() << "\n";
+    }
+
+    // AES encryption benchmark
+    std::cout << "Running AES encryption benchmark..." << std::endl;
+    // Warmup
+    for (int i = 0; i < 100; ++i) {
+        cipher.encrypt(reinterpret_cast<const unsigned char*>(aes_test_data[i % ITERATIONS].message), 
+                      reinterpret_cast<const unsigned char*>(aes_test_data[i % ITERATIONS].key), 
+                      ciphertext);
+    }
+    // Measured iterations
+    for (int i = 0; i < ITERATIONS; ++i) {
+        auto start = std::chrono::steady_clock::now();
+        cipher.encrypt(reinterpret_cast<const unsigned char*>(aes_test_data[i].message), 
+                      reinterpret_cast<const unsigned char*>(aes_test_data[i].key), 
+                      ciphertext);
+        auto end = std::chrono::steady_clock::now();
+        
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        csv_file << "aes128," << i << "," << duration.count() << "\n";
+    }
+
+    // Poly1305 MAC benchmark
+    std::cout << "Running Poly1305 MAC benchmark..." << std::endl;
+    // Warmup
+    for (int i = 0; i < 100; ++i) {
+        EPOS::S::Poly1305 poly1305_warmup(poly1305_test_data[i % ITERATIONS].key, poly1305_test_data[i % ITERATIONS].nonce);
+        poly1305_warmup.stamp(mac, poly1305_test_data[i % ITERATIONS].nonce, 
+                             reinterpret_cast<const unsigned char*>(poly1305_test_data[i % ITERATIONS].message), 
+                             sizeof(poly1305_test_data[i % ITERATIONS].message));
+    }
+    // Measured iterations
+    for (int i = 0; i < ITERATIONS; ++i) {
+        auto start = std::chrono::steady_clock::now();
+        EPOS::S::Poly1305 poly1305(poly1305_test_data[i].key, poly1305_test_data[i].nonce);
+        poly1305.stamp(mac, poly1305_test_data[i].nonce, 
+                      reinterpret_cast<const unsigned char*>(poly1305_test_data[i].message), 
+                      sizeof(poly1305_test_data[i].message));
+        auto end = std::chrono::steady_clock::now();
+        
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        csv_file << "poly1305," << i << "," << duration.count() << "\n";
+    }
+
+    // ECDH shared secret benchmark
+    std::cout << "Running ECDH shared secret benchmark..." << std::endl;
+    // Warmup
+    for (int i = 0; i < 100; ++i) {
+        EPOS::S::Diffie_Hellman::shared_key(dh_test_data[i % ITERATIONS].public_key, dh_test_data[i % ITERATIONS].private_key);
+    }
+    // Measured iterations
+    for (int i = 0; i < ITERATIONS; ++i) {
+        auto start = std::chrono::steady_clock::now();
+        EPOS::S::Diffie_Hellman::shared_key(dh_test_data[i].public_key, dh_test_data[i].private_key);
+        auto end = std::chrono::steady_clock::now();
+        
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        csv_file << "ecdh_shared," << i << "," << duration.count() << "\n";
+    }
+
+    csv_file.close();
+    std::cout << "Benchmarks completed. Results saved to latencies.csv" << std::endl;
+
+    // Read back the CSV file and calculate statistics
+    std::cout << "\nCalculating statistics from latencies.csv..." << std::endl;
+    auto primitive_latencies = EPOS::S::read_latencies_csv("latencies.csv");
+    
+    // Calculate and print statistics for each primitive
+    for (const auto& pair : primitive_latencies) {
+        const std::string& primitive_name = pair.first;
+        const std::vector<uint64_t>& latencies = pair.second;
+        
+        EPOS::S::PrimitiveStats stats = EPOS::S::calculate_stats(primitive_name, latencies);
+        EPOS::S::print_stats(stats);
+    }
 
     return 0;
 }
