@@ -119,7 +119,23 @@ int main() {
         auto end = std::chrono::steady_clock::now();
         
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-        csv_file << "aes128," << i << "," << duration.count() << "\n";
+        csv_file << "aes128_enc," << i << "," << duration.count() << "\n";
+    }
+
+    // AES decryption benchmark
+    std::cout << "Running AES decryption benchmark..." << std::endl;
+    // Warmup
+    for (int i = 0; i < 100; ++i) {
+        cipher.decrypt(ciphertext, reinterpret_cast<const unsigned char*>(aes_test_data[i % ITERATIONS].key), reinterpret_cast<unsigned char*>(aes_test_data[i % ITERATIONS].message));
+    }
+    // Measured iterations
+    for (int i = 0; i < ITERATIONS; ++i) {
+        auto start = std::chrono::steady_clock::now();
+        cipher.decrypt(ciphertext, reinterpret_cast<const unsigned char*>(aes_test_data[i].key), reinterpret_cast<unsigned char*>(aes_test_data[i].message));
+        auto end = std::chrono::steady_clock::now();
+
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+        csv_file << "aes128_dec," << i << "," << duration.count() << "\n";
     }
 
     // Poly1305 MAC benchmark
@@ -191,6 +207,20 @@ int main() {
         EPOS::S::PrimitiveStats poly1305_stats = EPOS::S::calculate_stats("poly1305", primitive_latencies.at("poly1305"));
         EPOS::S::ThroughputStats poly1305_throughput = EPOS::S::calculate_throughput(poly1305_stats, MAX_POLY1305_MESSAGE_SIZE);
         EPOS::S::print_throughput(poly1305_throughput);
+    }
+
+    // AES encryption throughput (processes MAX_AES_MESSAGE_SIZE bytes per iteration)
+    if (primitive_latencies.find("aes128_enc") != primitive_latencies.end()) {
+        EPOS::S::PrimitiveStats aes_enc_stats = EPOS::S::calculate_stats("aes128_enc", primitive_latencies.at("aes128_enc"));
+        EPOS::S::ThroughputStats aes_enc_throughput = EPOS::S::calculate_throughput(aes_enc_stats, MAX_AES_MESSAGE_SIZE);
+        EPOS::S::print_throughput(aes_enc_throughput);
+    }
+
+    // AES decryption throughput (processes MAX_AES_MESSAGE_SIZE bytes per iteration)
+    if (primitive_latencies.find("aes128_dec") != primitive_latencies.end()) {
+        EPOS::S::PrimitiveStats aes_dec_stats = EPOS::S::calculate_stats("aes128_dec", primitive_latencies.at("aes128_dec"));
+        EPOS::S::ThroughputStats aes_dec_throughput = EPOS::S::calculate_throughput(aes_dec_stats, MAX_AES_MESSAGE_SIZE);
+        EPOS::S::print_throughput(aes_dec_throughput);
     }
 
     return 0;

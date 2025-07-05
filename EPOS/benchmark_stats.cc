@@ -179,14 +179,25 @@ ThroughputStats calculate_throughput(const PrimitiveStats& latency_stats, size_t
  * @param stats Pre-calculated throughput statistics
  */
 void print_throughput(const ThroughputStats& stats) {
+    auto format_bps = [](double bps) -> std::string {
+        char buf[64];
+        if (bps >= 1e6)
+            std::snprintf(buf, sizeof(buf), "%.4f MB/s", bps / 1e6);
+        else if (bps >= 1e3)
+            std::snprintf(buf, sizeof(buf), "%.4f kB/s", bps / 1e3);
+        else
+            std::snprintf(buf, sizeof(buf), "%.4f B/s", bps);
+        return std::string(buf);
+    };
+
     std::cout << "\n=== " << stats.name << " Throughput ===\n";
     std::cout << "Bytes/iteration: " << stats.bytes_per_iteration << "\n";
     std::cout << "Iterations: " << stats.iterations << "\n";
-    std::cout << "Average: " << stats.avg_bps << " B/s\n";
-    std::cout << "Median:  " << stats.median_bps << " B/s\n";
-    std::cout << "Min:     " << stats.min_bps << " B/s\n";
-    std::cout << "Max:     " << stats.max_bps << " B/s\n";
-    std::cout << "Std Dev: " << stats.stdev_bps << " B/s\n";
+    std::cout << "Average: " << format_bps(stats.avg_bps) << "\n";
+    std::cout << "Median:  " << format_bps(stats.median_bps) << "\n";
+    std::cout << "Min:     " << format_bps(stats.min_bps) << "\n";
+    std::cout << "Max:     " << format_bps(stats.max_bps) << "\n";
+    std::cout << "Std Dev: " << format_bps(stats.stdev_bps) << "\n";
     std::cout << "=========================================\n";
 }
 
